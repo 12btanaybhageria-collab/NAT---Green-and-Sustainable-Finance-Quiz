@@ -5,13 +5,14 @@
 
 import { downloadCSV } from './utils.js';
 import { computeBySkill, findWeakestSkill, getRecommendedLevel } from './summary.js';
+import { STORAGE_KEYS } from './constants.js';
 
 /**
  * Export quiz result to CSV
  * @param {Object} data - Quiz state or attempt object (must have user, logs, score, asked)
  */
 export function exportThisResult(data) {
-  if (!data || !data.logs || data.logs.length === 0) return;
+  if (!data?.logs?.length) return;
   
   const header = [
     "timestamp", "name", "email", "empId", "dept", "weightedScore", "asked",
@@ -20,24 +21,22 @@ export function exportThisResult(data) {
   ];
   const rows = [header];
   
-  // Use stored timestamp if available, otherwise current time
   const ts = data.ts ? new Date(data.ts).toLocaleString() : new Date().toLocaleString();
   
-  // Calculate weakest skill
   const bySkill = computeBySkill(data.logs);
   const weakest = findWeakestSkill(bySkill);
   const recommendation = weakest ? getRecommendedLevel(weakest.accuracy) : null;
-  const weakestSkillName = weakest ? weakest.skill : "";
-  const weakestSkillAcc = weakest ? Math.round(weakest.accuracy) + "%" : "";
-  const recommendedLevel = recommendation ? recommendation.level : "";
+  const weakestSkillName = weakest?.skill || "";
+  const weakestSkillAcc = weakest ? `${Math.round(weakest.accuracy)}%` : "";
+  const recommendedLevel = recommendation?.level || "";
   
   data.logs.forEach((l, idx) => {
     rows.push([
       ts,
-      data.user && data.user.name || "",
-      data.user && data.user.email || "",
-      data.user && data.user.empId || "",
-      data.user && data.user.dept || "",
+      data.user?.name || "",
+      data.user?.email || "",
+      data.user?.empId || "",
+      data.user?.dept || "",
       Math.round(data.score * 10) / 10,
       data.asked,
       l.id,
@@ -52,7 +51,7 @@ export function exportThisResult(data) {
     ]);
   });
   
-  const userName = (data.user && data.user.name || "result").replace(/\s+/g, "_");
+  const userName = (data.user?.name || "result").replace(/\s+/g, "_");
   downloadCSV(`nat_quiz_${userName}.csv`, rows);
 }
 
@@ -60,9 +59,14 @@ export function exportThisResult(data) {
  * Export all stored attempts to CSV
  */
 export function exportAll() {
-  const raw = localStorage.getItem("natAttempts") || "[]";
+  const raw = localStorage.getItem(STORAGE_KEYS.attempts) || "[]";
   let attempts = [];
-  try { attempts = JSON.parse(raw); } catch(e) { attempts = []; }
+  try {
+    attempts = JSON.parse(raw);
+  } catch (e) {
+    console.warn("Failed to parse stored attempts:", e);
+    attempts = [];
+  }
   
   const header = [
     "timestamp", "name", "email", "empId", "dept", "weightedScore", "asked",
@@ -72,21 +76,20 @@ export function exportAll() {
   const rows = [header];
   
   attempts.forEach(a => {
-    // Calculate weakest skill for each attempt
     const bySkill = computeBySkill(a.logs || []);
     const weakest = findWeakestSkill(bySkill);
     const recommendation = weakest ? getRecommendedLevel(weakest.accuracy) : null;
-    const weakestSkillName = weakest ? weakest.skill : "";
-    const weakestSkillAcc = weakest ? Math.round(weakest.accuracy) + "%" : "";
-    const recommendedLevel = recommendation ? recommendation.level : "";
+    const weakestSkillName = weakest?.skill || "";
+    const weakestSkillAcc = weakest ? `${Math.round(weakest.accuracy)}%` : "";
+    const recommendedLevel = recommendation?.level || "";
     
     (a.logs || []).forEach((l, idx) => {
       rows.push([
         new Date(a.ts).toLocaleString(),
-        a.user && a.user.name || "",
-        a.user && a.user.email || "",
-        a.user && a.user.empId || "",
-        a.user && a.user.dept || "",
+        a.user?.name || "",
+        a.user?.email || "",
+        a.user?.empId || "",
+        a.user?.dept || "",
         Math.round(a.score * 10) / 10,
         a.asked,
         l.id,
@@ -95,13 +98,12 @@ export function exportAll() {
         l.chosen,
         l.correctBool,
         l.timeTaken,
-        idx === 0 ? weakestSkillName : "",  // Only on first row of each attempt
-        idx === 0 ? weakestSkillAcc : "",   // Only on first row of each attempt
-        idx === 0 ? recommendedLevel : ""   // Only on first row of each attempt
+        idx === 0 ? weakestSkillName : "",
+        idx === 0 ? weakestSkillAcc : "",
+        idx === 0 ? recommendedLevel : ""
       ]);
     });
   });
   
   downloadCSV("nat_quiz_all_results.csv", rows);
 }
-

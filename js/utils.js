@@ -3,6 +3,8 @@
  * Contains helper functions used across the application
  */
 
+import { DIFFICULTY_WEIGHTS } from './constants.js';
+
 /**
  * Normalize difficulty string to standard format
  * @param {string} d - Raw difficulty string
@@ -10,10 +12,10 @@
  */
 export function normalizeDifficulty(d) {
   if (!d) return "medium";
-  d = String(d).trim().toLowerCase();
-  if (d === "easy") return "easy";
-  if (d === "medium") return "medium";
-  if (d === "difficult" || d === "hard") return "hard";
+  const normalized = String(d).trim().toLowerCase();
+  if (normalized === "easy") return "easy";
+  if (normalized === "medium") return "medium";
+  if (normalized === "difficult" || normalized === "hard") return "hard";
   return "medium";
 }
 
@@ -37,9 +39,7 @@ export function shuffle(arr) {
  * @returns {number} - Weight multiplier
  */
 export function weightFor(d) {
-  if (d === "hard") return 2;
-  if (d === "medium") return 1.5;
-  return 1;
+  return DIFFICULTY_WEIGHTS[d] || DIFFICULTY_WEIGHTS.easy;
 }
 
 /**
@@ -48,9 +48,9 @@ export function weightFor(d) {
  * @returns {string} - Escaped CSV value
  */
 export function toCSVCell(v) {
-  const s = (v === null || v === undefined) ? "" : String(v);
+  const s = v == null ? "" : String(v);
   if (/[",\n]/.test(s)) {
-    return '"' + s.replace(/"/g, '""') + '"';
+    return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
 }
@@ -83,4 +83,3 @@ export function isValidEmail(email) {
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRe.test(email);
 }
-

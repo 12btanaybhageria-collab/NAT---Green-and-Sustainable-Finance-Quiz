@@ -3,6 +3,8 @@
  * Handles score calculations and summary rendering
  */
 
+import { PROFICIENCY_THRESHOLDS, PROFICIENCY_COLORS } from './constants.js';
+
 /**
  * Compute statistics by skill from logs
  * @param {Array} logs - Quiz attempt logs
@@ -25,10 +27,16 @@ export function computeBySkill(logs) {
  * @returns {Object} - Level info with color
  */
 export function getRecommendedLevel(accuracy) {
-  if (accuracy < 25) return { level: "Foundational", color: "#dc3545", bgColor: "rgba(220, 53, 69, 0.1)" };
-  if (accuracy < 50) return { level: "Intermediate", color: "#fd7e14", bgColor: "rgba(253, 126, 20, 0.1)" };
-  if (accuracy < 75) return { level: "Advanced", color: "#0d6efd", bgColor: "rgba(13, 110, 253, 0.1)" };
-  return { level: "Leadership", color: "#198754", bgColor: "rgba(25, 135, 84, 0.1)" };
+  if (accuracy < PROFICIENCY_THRESHOLDS.foundational) {
+    return { level: "Foundational", ...PROFICIENCY_COLORS.foundational };
+  }
+  if (accuracy < PROFICIENCY_THRESHOLDS.intermediate) {
+    return { level: "Intermediate", ...PROFICIENCY_COLORS.intermediate };
+  }
+  if (accuracy < PROFICIENCY_THRESHOLDS.advanced) {
+    return { level: "Advanced", ...PROFICIENCY_COLORS.advanced };
+  }
+  return { level: "Leadership", ...PROFICIENCY_COLORS.leadership };
 }
 
 /**
@@ -59,7 +67,7 @@ export function renderBySkillLine(bySkill) {
   const parts = [];
   for (const k in bySkill) {
     const r = bySkill[k];
-    parts.push(k + " " + r.correct + "/" + r.total);
+    parts.push(`${k} ${r.correct}/${r.total}`);
   }
   return parts.join("; ");
 }
@@ -80,7 +88,6 @@ export function generateSummaryHTML(state) {
     diffCounts[l.difficulty] = (diffCounts[l.difficulty] || 0) + 1;
   });
 
-  // Find weakest skill and recommendation
   const weakest = findWeakestSkill(bySkill);
   const recommendation = weakest ? getRecommendedLevel(weakest.accuracy) : null;
   const overallLevel = getRecommendedLevel(accuracy);
@@ -88,135 +95,151 @@ export function generateSummaryHTML(state) {
   let html = "";
   
   // Score Header
-  html += '<div class="summary-header">' +
-    '<div class="summary-score">' +
-      '<div class="score-circle" style="border-color:' + overallLevel.color + ';">' +
-        '<span class="score-value">' + accuracy + '%</span>' +
-        '<span class="score-label">Accuracy</span>' +
-      '</div>' +
-    '</div>' +
-    '<div class="summary-stats">' +
-      '<div class="stat-item">' +
-        '<span class="stat-value">' + weightedScore + '</span>' +
-        '<span class="stat-label">Weighted Score</span>' +
-      '</div>' +
-      '<div class="stat-item">' +
-        '<span class="stat-value">' + totalCorrect + '/' + state.logs.length + '</span>' +
-        '<span class="stat-label">Correct Answers</span>' +
-      '</div>' +
-      '<div class="stat-item">' +
-        '<span class="stat-value" style="color:' + overallLevel.color + ';">' + overallLevel.level + '</span>' +
-        '<span class="stat-label">Proficiency Level</span>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
+  html += `
+    <div class="summary-header">
+      <div class="summary-score">
+        <div class="score-circle" style="border-color:${overallLevel.color};">
+          <span class="score-value">${accuracy}%</span>
+          <span class="score-label">Accuracy</span>
+        </div>
+      </div>
+      <div class="summary-stats">
+        <div class="stat-item">
+          <span class="stat-value">${weightedScore}</span>
+          <span class="stat-label">Weighted Score</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">${totalCorrect}/${state.logs.length}</span>
+          <span class="stat-label">Correct Answers</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" style="color:${overallLevel.color};">${overallLevel.level}</span>
+          <span class="stat-label">Proficiency Level</span>
+        </div>
+      </div>
+    </div>`;
 
   // Difficulty Breakdown
-  html += '<div class="summary-section">' +
-    '<h3 class="section-title">Difficulty Breakdown</h3>' +
-    '<div class="difficulty-bars">' +
-      '<div class="diff-bar">' +
-        '<span class="diff-label">Easy</span>' +
-        '<div class="diff-track"><div class="diff-fill diff-easy" style="width:' + (diffCounts.easy * 5) + '%;"></div></div>' +
-        '<span class="diff-count">' + (diffCounts.easy||0) + '</span>' +
-      '</div>' +
-      '<div class="diff-bar">' +
-        '<span class="diff-label">Medium</span>' +
-        '<div class="diff-track"><div class="diff-fill diff-medium" style="width:' + (diffCounts.medium * 5) + '%;"></div></div>' +
-        '<span class="diff-count">' + (diffCounts.medium||0) + '</span>' +
-      '</div>' +
-      '<div class="diff-bar">' +
-        '<span class="diff-label">Hard</span>' +
-        '<div class="diff-track"><div class="diff-fill diff-hard" style="width:' + (diffCounts.hard * 5) + '%;"></div></div>' +
-        '<span class="diff-count">' + (diffCounts.hard||0) + '</span>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
+  html += `
+    <div class="summary-section">
+      <h3 class="section-title">Difficulty Breakdown</h3>
+      <div class="difficulty-bars">
+        <div class="diff-bar">
+          <span class="diff-label">Easy</span>
+          <div class="diff-track"><div class="diff-fill diff-easy" style="width:${diffCounts.easy * 5}%;"></div></div>
+          <span class="diff-count">${diffCounts.easy || 0}</span>
+        </div>
+        <div class="diff-bar">
+          <span class="diff-label">Medium</span>
+          <div class="diff-track"><div class="diff-fill diff-medium" style="width:${diffCounts.medium * 5}%;"></div></div>
+          <span class="diff-count">${diffCounts.medium || 0}</span>
+        </div>
+        <div class="diff-bar">
+          <span class="diff-label">Hard</span>
+          <div class="diff-track"><div class="diff-fill diff-hard" style="width:${diffCounts.hard * 5}%;"></div></div>
+          <span class="diff-count">${diffCounts.hard || 0}</span>
+        </div>
+      </div>
+    </div>`;
 
   // Recommendation card for weakest skill
   if (weakest && recommendation) {
-    html += '<div class="summary-section recommendation-card" style="border-left:4px solid ' + recommendation.color + ';">' +
-      '<h3 class="section-title">Focus Area</h3>' +
-      '<div class="recommendation-content">' +
-        '<div class="recommendation-skill">' + weakest.skill + '</div>' +
-        '<div class="recommendation-stats">' +
-          '<span class="rec-accuracy" style="color:' + recommendation.color + ';">' + Math.round(weakest.accuracy) + '% accuracy</span>' +
-          '<span class="rec-detail">' + weakest.correct + ' of ' + weakest.total + ' correct</span>' +
-        '</div>' +
-        '<div class="recommendation-level" style="background:' + recommendation.bgColor + ';color:' + recommendation.color + ';">' +
-          'Recommended: ' + recommendation.level + ' level training' +
-        '</div>' +
-      '</div>' +
-    '</div>';
+    html += `
+      <div class="summary-section recommendation-card" style="border-left:4px solid ${recommendation.color};">
+        <h3 class="section-title">Focus Area</h3>
+        <div class="recommendation-content">
+          <div class="recommendation-skill">${weakest.skill}</div>
+          <div class="recommendation-stats">
+            <span class="rec-accuracy" style="color:${recommendation.color};">${Math.round(weakest.accuracy)}% accuracy</span>
+            <span class="rec-detail">${weakest.correct} of ${weakest.total} correct</span>
+          </div>
+          <div class="recommendation-level" style="background:${recommendation.bgColor};color:${recommendation.color};">
+            Recommended: ${recommendation.level} level training
+          </div>
+        </div>
+      </div>`;
   }
 
   // Skills Table
-  html += '<div class="summary-section">' +
-    '<h3 class="section-title">Performance by Skill</h3>' +
-    '<div class="skills-table-wrap">' +
-    '<table class="summary-table">' +
-      '<thead>' +
-        '<tr>' +
-          '<th>Skill</th>' +
-          '<th>Correct</th>' +
-          '<th>Total</th>' +
-          '<th>Accuracy</th>' +
-        '</tr>' +
-      '</thead>' +
-      '<tbody>';
+  html += `
+    <div class="summary-section">
+      <h3 class="section-title">Performance by Skill</h3>
+      <div class="skills-table-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Skill</th>
+              <th>Correct</th>
+              <th>Total</th>
+              <th>Accuracy</th>
+            </tr>
+          </thead>
+          <tbody>`;
 
   Object.keys(bySkill).forEach(k => {
     const r = bySkill[k];
     const acc = r.total ? Math.round((r.correct / r.total) * 100) : 0;
-    const levelColor = getRecommendedLevel(acc).color;
-    html += '<tr>' +
-      '<td>' + k + '</td>' +
-      '<td class="text-center">' + r.correct + '</td>' +
-      '<td class="text-center">' + r.total + '</td>' +
-      '<td class="text-right"><span class="accuracy-badge" style="background:' + getRecommendedLevel(acc).bgColor + ';color:' + levelColor + ';">' + acc + '%</span></td>' +
-    '</tr>';
+    const levelInfo = getRecommendedLevel(acc);
+    html += `
+            <tr>
+              <td>${k}</td>
+              <td class="text-center">${r.correct}</td>
+              <td class="text-center">${r.total}</td>
+              <td class="text-right"><span class="accuracy-badge" style="background:${levelInfo.bgColor};color:${levelInfo.color};">${acc}%</span></td>
+            </tr>`;
   });
 
-  html += '</tbody></table></div></div>';
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 
   // Wrong Answers Section
-  html += '<div class="summary-section">' +
-    '<h3 class="section-title">Review: Incorrect Answers</h3>';
+  html += `
+    <div class="summary-section">
+      <h3 class="section-title">Review: Incorrect Answers</h3>`;
 
   if (wrong.length === 0) {
-    html += '<div class="success-message">' +
-      '<div class="success-icon">✓</div>' +
-      '<div class="success-text">Excellent! No mistakes recorded in this attempt.</div>' +
-    '</div>';
+    html += `
+      <div class="success-message">
+        <div class="success-icon">✓</div>
+        <div class="success-text">Excellent! No mistakes recorded in this attempt.</div>
+      </div>`;
   } else {
-    html += '<div class="wrong-table-wrap">' +
-      '<table class="summary-table">' +
-        '<thead>' +
-          '<tr>' +
-            '<th>#</th>' +
-            '<th>QID</th>' +
-            '<th>Difficulty</th>' +
-            '<th>Skill</th>' +
-            '<th>Your Answer</th>' +
-            '<th>Time</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody>';
+    html += `
+      <div class="wrong-table-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>QID</th>
+              <th>Difficulty</th>
+              <th>Skill</th>
+              <th>Your Answer</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>`;
     wrong.forEach((l, idx) => {
-      html += '<tr>' +
-        '<td>' + (idx+1) + '</td>' +
-        '<td>' + l.id + '</td>' +
-        '<td><span class="diff-tag diff-tag-' + l.difficulty + '">' + l.difficulty + '</span></td>' +
-        '<td>' + l.skill + '</td>' +
-        '<td class="answer-cell">' + l.chosen + '</td>' +
-        '<td class="text-right">' + l.timeTaken + 's</td>' +
-      '</tr>';
+      html += `
+            <tr>
+              <td>${idx + 1}</td>
+              <td>${l.id}</td>
+              <td><span class="diff-tag diff-tag-${l.difficulty}">${l.difficulty}</span></td>
+              <td>${l.skill}</td>
+              <td class="answer-cell">${l.chosen}</td>
+              <td class="text-right">${l.timeTaken}s</td>
+            </tr>`;
     });
-    html += '</tbody></table></div>';
+    html += `
+          </tbody>
+        </table>
+      </div>`;
   }
 
-  html += '</div>';
+  html += `
+    </div>`;
 
   return html;
 }
-

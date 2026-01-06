@@ -4,17 +4,18 @@
  */
 
 import { normalizeDifficulty, shuffle } from './utils.js';
+import { MAX_QUESTIONS, TIME_PER_QUESTION, DEFAULT_DIFFICULTY } from './constants.js';
 
 export const state = {
   bank: [],
   pools: { easy: [], medium: [], hard: [] },
   asked: 0,
   score: 0,
-  maxQuestions: 20,
+  maxQuestions: MAX_QUESTIONS,
   current: null,
-  currentDifficulty: "medium",
+  currentDifficulty: DEFAULT_DIFFICULTY,
   timer: null,
-  timeLeft: 30,
+  timeLeft: TIME_PER_QUESTION,
   locked: true,
   selection: null,
   logs: [],
@@ -51,7 +52,7 @@ export function resetQuizState() {
   state.score = 0;
   state.logs = [];
   state.current = null;
-  state.currentDifficulty = "medium";
+  state.currentDifficulty = DEFAULT_DIFFICULTY;
   state.locked = true;
   state.selection = null;
 }
@@ -73,7 +74,7 @@ export function updateDifficulty(isCorrect) {
     state.currentDifficulty = isCorrect ? "medium" : "easy";
   } else if (state.current.difficulty === "medium") {
     state.currentDifficulty = isCorrect ? "hard" : "easy";
-  } else { // hard
+  } else {
     state.currentDifficulty = isCorrect ? "hard" : "medium";
   }
 }

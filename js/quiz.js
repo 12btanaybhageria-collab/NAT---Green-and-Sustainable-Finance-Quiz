@@ -7,6 +7,12 @@ import { state, resetPools, addLog, updateDifficulty, resetQuizState, initialize
 import { weightFor } from './utils.js';
 import { generateSummaryHTML, computeBySkill } from './summary.js';
 import { embeddedBank } from './questions.js';
+import { 
+  TIME_PER_QUESTION, 
+  TOAST_DURATION, 
+  OPTION_LETTERS,
+  STORAGE_KEYS 
+} from './constants.js';
 
 // DOM Elements (will be set by init)
 let elements = null;
@@ -26,7 +32,7 @@ export function initQuizElements(els) {
 export function showToast(msg) {
   elements.toast.textContent = msg;
   elements.toast.classList.add("show");
-  setTimeout(() => elements.toast.classList.remove("show"), 1500);
+  setTimeout(() => elements.toast.classList.remove("show"), TOAST_DURATION);
 }
 
 /**
@@ -50,7 +56,6 @@ export function renderChips(user) {
     return;
   }
   
-  // Show user name
   if (user.name) {
     const nameSpan = document.createElement("span");
     nameSpan.className = "user-name";
@@ -58,7 +63,6 @@ export function renderChips(user) {
     elements.userChips.appendChild(nameSpan);
   }
   
-  // Show email if available
   if (user.email) {
     if (user.name) {
       const sep = document.createElement("span");
@@ -78,7 +82,7 @@ export function renderChips(user) {
  */
 export function updateTop() {
   elements.askedEl.textContent = state.asked;
-  elements.barEl.style.width = ((state.asked / state.maxQuestions) * 100).toFixed(1) + "%";
+  elements.barEl.style.width = `${((state.asked / state.maxQuestions) * 100).toFixed(1)}%`;
 }
 
 /**
@@ -130,17 +134,16 @@ export function renderQuestion() {
     return;
   }
   elements.qText.textContent = q.question;
-  elements.diffTag.textContent = "Difficulty: " + q.difficulty.toUpperCase();
-  elements.skillTag.textContent = "Skill: " + (q.skill || "—");
+  elements.diffTag.textContent = `Difficulty: ${q.difficulty.toUpperCase()}`;
+  elements.skillTag.textContent = `Skill: ${q.skill || "—"}`;
 
-  const letters = ["A", "B", "C", "D"];
   elements.optionsEl.innerHTML = "";
-  letters.forEach(letter => {
+  OPTION_LETTERS.forEach(letter => {
     const text = q[letter];
     const label = document.createElement("label");
     label.className = "opt";
     label.dataset.key = letter;
-    label.innerHTML = '<div class="k">' + letter + '</div><div>' + text + '</div>';
+    label.innerHTML = `<div class="k">${letter}</div><div>${text}</div>`;
     label.addEventListener("click", () => {
       if (state.locked) return;
       state.selection = letter;
@@ -159,11 +162,11 @@ export function renderQuestion() {
  */
 export function countdown() {
   clearInterval(state.timer);
-  state.timeLeft = 30;
-  elements.timerEl.textContent = state.timeLeft + "s";
+  state.timeLeft = TIME_PER_QUESTION;
+  elements.timerEl.textContent = `${state.timeLeft}s`;
   state.timer = setInterval(() => {
     state.timeLeft--;
-    elements.timerEl.textContent = state.timeLeft + "s";
+    elements.timerEl.textContent = `${state.timeLeft}s`;
     if (state.timeLeft <= 0) {
       clearInterval(state.timer);
       lockAndAdvance(true);
@@ -175,7 +178,6 @@ export function countdown() {
  * Start a new question
  */
 export function startQuestion() {
-  // Ensure pools are initialized
   if (state.bank.length === 0) {
     initializeBank(embeddedBank);
   }
@@ -222,10 +224,9 @@ export function lockAndAdvance(timeUp = false) {
     chosen,
     correct: "(hidden)",
     correctBool: isCorrect,
-    timeTaken: 30 - state.timeLeft
+    timeTaken: TIME_PER_QUESTION - state.timeLeft
   });
 
-  // Update difficulty for adaptive learning
   updateDifficulty(isCorrect);
 
   if (state.asked >= state.maxQuestions) {
@@ -250,12 +251,14 @@ export function finishQuiz() {
   setButtonsMode("start");
   renderSummary();
   
-  // Save to localStorage
-  const attemptsRaw = localStorage.getItem("natAttempts") || "[]";
+  const attemptsRaw = localStorage.getItem(STORAGE_KEYS.attempts) || "[]";
   let attempts = [];
   try {
     attempts = JSON.parse(attemptsRaw);
-  } catch(e) { attempts = []; }
+  } catch (e) {
+    console.warn("Failed to parse stored attempts:", e);
+    attempts = [];
+  }
   
   const bySkill = computeBySkill(state.logs);
   attempts.push({
@@ -268,8 +271,8 @@ export function finishQuiz() {
   });
   
   try {
-    localStorage.setItem("natAttempts", JSON.stringify(attempts));
-  } catch(e) {
+    localStorage.setItem(STORAGE_KEYS.attempts, JSON.stringify(attempts));
+  } catch (e) {
     console.warn("Unable to save attempts:", e);
   }
   
@@ -280,17 +283,15 @@ export function finishQuiz() {
  * Restart quiz with fresh state
  */
 export function restartQuiz() {
-  // Reset state using proper functions
   initializeBank(embeddedBank);
   resetPools();
   resetQuizState();
   
-  // Reset UI
   elements.qText.textContent = `Press "Start Test" to begin.`;
   elements.optionsEl.innerHTML = "";
   elements.diffTag.textContent = "Difficulty: —";
   elements.skillTag.textContent = "Skill: —";
-  elements.timerEl.textContent = "30s";
+  elements.timerEl.textContent = `${TIME_PER_QUESTION}s`;
   updateTop();
   setButtonsMode("start");
   goScreen(elements.screenQuiz);

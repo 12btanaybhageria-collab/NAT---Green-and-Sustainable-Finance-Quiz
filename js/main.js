@@ -19,127 +19,7 @@ import {
 import { exportThisResult, exportAll } from './export.js';
 import { loadAdminTable, validateAdminCredentials } from './admin.js';
 import { embeddedBank } from './questions.js';
-
-console.log("=== NAT Quiz: All modules imported successfully ===");
-
-// Expose functions globally for inline onclick handlers (fallback)
-window.natStartQuestion = () => {
-  startQuestion();
-};
-window.natGoToUser = () => {
-  goScreen(document.getElementById("screenUser"));
-};
-window.natSubmit = () => {
-  if (state.locked) return;
-  lockAndAdvance(false);
-};
-window.natRetake = () => {
-  restartQuiz();
-};
-window.natExport = () => {
-  exportThisResult(state);
-};
-window.natGoToAdmin = () => {
-  goScreen(document.getElementById("screenAdmin"));
-};
-window.natGoToQuiz = () => {
-  goScreen(document.getElementById("screenQuiz"));
-};
-window.natAdminLogin = () => {
-  const id = elements.adminId.value.trim();
-  const pw = elements.adminPw.value.trim();
-  if (validateAdminCredentials(id, pw)) {
-    state.adminLogged = true;
-    elements.adminStatus.textContent = "Login successful.";
-    elements.adminLoginBox.classList.add("hidden");
-    elements.adminDashboard.classList.remove("hidden");
-    loadAdminTable(elements.adminTableBody, elements.detailBox);
-    updateHeaderButtons('admin');
-  } else {
-    elements.adminStatus.textContent = "Invalid credentials.";
-  }
-};
-window.natAdminLogout = () => {
-  elements.adminLoginBox.classList.remove("hidden");
-  elements.adminDashboard.classList.add("hidden");
-  elements.adminId.value = "";
-  elements.adminPw.value = "";
-  elements.adminStatus.textContent = "Logged out.";
-};
-window.natExportAll = () => {
-  exportAll();
-};
-window.natExportAttempt = () => {
-  if (window.currentSelectedAttempt) {
-    exportThisResult(window.currentSelectedAttempt);
-  }
-};
-window.natStartFromUser = () => {
-  if (!validateUser()) return;
-  const user = {
-    name: elements.uName.value.trim(),
-    email: elements.uEmail.value.trim(),
-    empId: elements.uEmpId.value.trim(),
-    dept: elements.uDept.value.trim()
-  };
-  state.user = user;
-  try {
-    localStorage.setItem("natUser", JSON.stringify(user));
-  } catch(e) {}
-  renderChips(user);
-  updateHeaderButtons('candidate');
-  showToast("Details saved. Starting quiz…");
-  setTimeout(() => {
-    restartQuiz();
-  }, 400);
-};
-
-window.natLogout = () => {
-  // Reset user state
-  state.user = null;
-  state.adminLogged = false;
-  
-  // Clear user chips
-  elements.userChips.innerHTML = "";
-  
-  // Reset admin dashboard if visible
-  elements.adminLoginBox.classList.remove("hidden");
-  elements.adminDashboard.classList.add("hidden");
-  elements.adminId.value = "";
-  elements.adminPw.value = "";
-  elements.adminStatus.textContent = "";
-  
-  // Update header buttons
-  updateHeaderButtons('none');
-  
-  // Go to user screen
-  goScreen(elements.screenUser);
-  showToast("Logged out successfully");
-};
-
-// Update header buttons based on login state
-function updateHeaderButtons(mode) {
-  const candidateBtn = document.getElementById("candidateBtn");
-  const adminBtn = document.getElementById("adminBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
-  
-  if (mode === 'candidate') {
-    candidateBtn.classList.add("hidden");
-    adminBtn.classList.add("hidden");
-    logoutBtn.classList.remove("hidden");
-  } else if (mode === 'admin') {
-    candidateBtn.classList.add("hidden");
-    adminBtn.classList.add("hidden");
-    logoutBtn.classList.remove("hidden");
-  } else {
-    candidateBtn.classList.remove("hidden");
-    adminBtn.classList.remove("hidden");
-    logoutBtn.classList.add("hidden");
-  }
-}
-
-// Expose for use in other functions
-window.updateHeaderButtons = updateHeaderButtons;
+import { STORAGE_KEYS, QUIZ_START_DELAY } from './constants.js';
 
 // DOM Elements
 const elements = {
@@ -152,6 +32,7 @@ const elements = {
   // Navigation buttons
   candidateBtn: document.getElementById("candidateBtn"),
   adminBtn: document.getElementById("adminBtn"),
+  logoutBtn: document.getElementById("logoutBtn"),
   userChips: document.getElementById("userChips"),
   
   // User form inputs
@@ -211,6 +92,22 @@ const elements = {
 initQuizElements(elements);
 
 /**
+ * Update header buttons based on login state
+ * @param {string} mode - 'candidate', 'admin', or 'none'
+ */
+function updateHeaderButtons(mode) {
+  if (mode === 'candidate' || mode === 'admin') {
+    elements.candidateBtn.classList.add("hidden");
+    elements.adminBtn.classList.add("hidden");
+    elements.logoutBtn.classList.remove("hidden");
+  } else {
+    elements.candidateBtn.classList.remove("hidden");
+    elements.adminBtn.classList.remove("hidden");
+    elements.logoutBtn.classList.add("hidden");
+  }
+}
+
+/**
  * Validate user form
  * @returns {boolean} - Whether form is valid
  */
@@ -233,14 +130,10 @@ function validateUser() {
   return ok;
 }
 
-// Event Handlers
-
-// Navigation
-elements.candidateBtn.addEventListener("click", () => goScreen(elements.screenUser));
-elements.adminBtn.addEventListener("click", () => goScreen(elements.screenAdmin));
-
-// User form submission
-elements.startFromUserBtn.addEventListener("click", () => {
+/**
+ * Handle user form submission and start quiz
+ */
+function handleStartFromUser() {
   if (!validateUser()) return;
   const user = {
     name: elements.uName.value.trim(),
@@ -250,90 +143,119 @@ elements.startFromUserBtn.addEventListener("click", () => {
   };
   state.user = user;
   try {
-    localStorage.setItem("natUser", JSON.stringify(user));
-  } catch(e) {}
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+  } catch (e) {
+    console.warn("Failed to save user to localStorage:", e);
+  }
   renderChips(user);
+  updateHeaderButtons('candidate');
   showToast("Details saved. Starting quiz…");
   setTimeout(() => {
     restartQuiz();
-  }, 400);
-});
+  }, QUIZ_START_DELAY);
+}
 
-// Prefill from URL params
-elements.prefillBtn.addEventListener("click", () => {
-  const params = new URLSearchParams(location.search);
-  if (params.get("name")) elements.uName.value = params.get("name");
-  if (params.get("email")) elements.uEmail.value = params.get("email");
-  if (params.get("empId")) elements.uEmpId.value = params.get("empId");
-  if (params.get("dept")) elements.uDept.value = params.get("dept");
-});
-
-// Quiz controls
-console.log("Attaching quiz event listeners...", elements.startBtn, elements.backToDetailsBtn);
-
-elements.startBtn.addEventListener("click", () => {
-  console.log("Start button clicked!");
-  startQuestion();
-});
-
-elements.submitBtn.addEventListener("click", () => {
-  console.log("Submit button clicked!");
-  if (state.locked) return;
-  lockAndAdvance(false);
-});
-
-elements.backToDetailsBtn.addEventListener("click", () => {
-  console.log("Back to Details clicked!", { asked: state.asked, logs: state.logs.length });
+/**
+ * Handle logout action
+ */
+function handleLogout() {
+  state.user = null;
+  state.adminLogged = false;
+  elements.userChips.innerHTML = "";
+  elements.adminLoginBox.classList.remove("hidden");
+  elements.adminDashboard.classList.add("hidden");
+  elements.adminId.value = "";
+  elements.adminPw.value = "";
+  elements.adminStatus.textContent = "";
+  updateHeaderButtons('none');
   goScreen(elements.screenUser);
-});
+  showToast("Logged out successfully");
+}
 
-// Summary controls
-elements.retakeBtn.addEventListener("click", () => {
-  restartQuiz();
-});
-
-elements.exportBtn.addEventListener("click", () => exportThisResult(state));
-elements.summaryToDetailsBtn.addEventListener("click", () => goScreen(elements.screenUser));
-
-// Admin controls
-elements.adminLoginBtn.addEventListener("click", () => {
+/**
+ * Handle admin login
+ */
+function handleAdminLogin() {
   const id = elements.adminId.value.trim();
   const pw = elements.adminPw.value.trim();
   if (validateAdminCredentials(id, pw)) {
+    state.adminLogged = true;
     elements.adminStatus.textContent = "Login successful.";
     elements.adminLoginBox.classList.add("hidden");
     elements.adminDashboard.classList.remove("hidden");
     loadAdminTable(elements.adminTableBody, elements.detailBox);
+    updateHeaderButtons('admin');
   } else {
     elements.adminStatus.textContent = "Invalid credentials.";
   }
-});
+}
 
-elements.adminBackBtn.addEventListener("click", () => {
-  goScreen(elements.screenQuiz);
-});
-
-elements.adminBackBtn2.addEventListener("click", () => {
-  goScreen(elements.screenQuiz);
-});
-
-elements.adminLogoutBtn.addEventListener("click", () => {
+/**
+ * Handle admin logout
+ */
+function handleAdminLogout() {
   elements.adminLoginBox.classList.remove("hidden");
   elements.adminDashboard.classList.add("hidden");
   elements.adminId.value = "";
   elements.adminPw.value = "";
   elements.adminStatus.textContent = "Logged out.";
-});
+}
 
+// Keep this global for dynamically generated HTML in admin.js
+window.natExportAttempt = () => {
+  if (window.currentSelectedAttempt) {
+    exportThisResult(window.currentSelectedAttempt);
+  }
+};
+
+// Event Handlers
+
+// Navigation
+elements.candidateBtn.addEventListener("click", () => goScreen(elements.screenUser));
+elements.adminBtn.addEventListener("click", () => goScreen(elements.screenAdmin));
+elements.logoutBtn.addEventListener("click", handleLogout);
+
+// User form submission
+elements.startFromUserBtn.addEventListener("click", handleStartFromUser);
+
+// Prefill from URL params (if button exists)
+if (elements.prefillBtn) {
+  elements.prefillBtn.addEventListener("click", () => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("name")) elements.uName.value = params.get("name");
+    if (params.get("email")) elements.uEmail.value = params.get("email");
+    if (params.get("empId")) elements.uEmpId.value = params.get("empId");
+    if (params.get("dept")) elements.uDept.value = params.get("dept");
+  });
+}
+
+// Quiz controls
+elements.startBtn.addEventListener("click", () => startQuestion());
+elements.submitBtn.addEventListener("click", () => {
+  if (state.locked) return;
+  lockAndAdvance(false);
+});
+elements.backToDetailsBtn.addEventListener("click", () => goScreen(elements.screenUser));
+
+// Summary controls
+elements.retakeBtn.addEventListener("click", () => restartQuiz());
+elements.exportBtn.addEventListener("click", () => exportThisResult(state));
+elements.summaryToDetailsBtn.addEventListener("click", () => goScreen(elements.screenUser));
+
+// Admin controls
+elements.adminLoginBtn.addEventListener("click", handleAdminLogin);
+elements.adminBackBtn.addEventListener("click", () => goScreen(elements.screenUser));
+if (elements.adminBackBtn2) {
+  elements.adminBackBtn2.addEventListener("click", () => goScreen(elements.screenUser));
+}
+elements.adminLogoutBtn.addEventListener("click", handleAdminLogout);
 elements.exportAllBtn.addEventListener("click", exportAll);
 
 // Initialization
 (function init() {
-  console.log("NAT Quiz initializing...");
-  
   // Load saved user
   try {
-    const u = JSON.parse(localStorage.getItem("natUser") || "null");
+    const u = JSON.parse(localStorage.getItem(STORAGE_KEYS.user) || "null");
     if (u) {
       elements.uName.value = u.name || "";
       elements.uEmail.value = u.email || "";
@@ -342,21 +264,14 @@ elements.exportAllBtn.addEventListener("click", exportAll);
       state.user = u;
       renderChips(u);
     }
-  } catch(e) {
-    console.error("Error loading saved user:", e);
+  } catch (e) {
+    console.warn("Error loading saved user:", e);
   }
 
   // Initialize question bank
-  console.log("Initializing question bank with", embeddedBank.length, "questions");
   initializeBank(embeddedBank);
   resetPools();
-  console.log("Pools initialized:", { 
-    easy: state.pools.easy.length, 
-    medium: state.pools.medium.length, 
-    hard: state.pools.hard.length 
-  });
   updateTop();
   setButtonsMode("start");
   goScreen(elements.screenUser);
-  console.log("NAT Quiz ready!");
 })();
