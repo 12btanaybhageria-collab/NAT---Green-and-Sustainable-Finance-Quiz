@@ -1,0 +1,280 @@
+/* NAT Quiz - Green and Sustainable Finance */
+/* Styles */
+
+:root {
+  --bg: #f6fbf7;
+  --card: #ffffff;
+  --muted: #4b6f54;
+  --text: #0e2a18;
+  --accent: #1a7f37;
+  --accent-2: #0e6a2a;
+  --button: #eaf5ed;
+  --button-hover: #dff0e4;
+  --brand: #1a7f37;
+  --brand-dark: #0e6a2a;
+  --border: #d6e7da;
+  --shadow: 0 20px 40px rgba(16,42,23,.08);
+  --error: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 600px at 20% -10%, #eaf6ee, transparent), var(--bg);
+  color: var(--text);
+}
+
+.wrap { max-width: 1120px; margin: 24px auto; padding: 0 12px; }
+
+header {
+  padding: 20px 18px;
+  background: #ffffffd5;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.logo {
+  width: 50px; height: 70px;
+  border-radius: 12px;
+  background: #f2faf4;
+  border: 1px solid var(--border);
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+
+.logo img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+
+header h1 { margin: 0; font-size: 20px; color: var(--brand-dark); }
+header .sub { margin: 0; font-size: 12px; color: var(--muted); }
+
+.top-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--brand-dark);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.btn:hover { background: var(--button); }
+
+.user-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chip {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #ecf7ef;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+
+main { margin-top: 18px; }
+
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+.muted { color: var(--muted); font-size: 13px; }
+.hr { height: 1px; background: var(--border); margin: 10px 0; }
+.hidden { display: none !important; }
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 20px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+}
+
+.hero-ill {
+  background: linear-gradient(145deg, #eaf6ee, #ffffff);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 20px;
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+}
+
+.title { margin: 0 0 6px; color: var(--brand-dark); font-size: 22px; }
+.subtitle { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+
+.form { display: grid; gap: 10px; }
+.field label { font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block; }
+
+.field input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px #1a7f3715;
+}
+
+.err { min-height: 14px; font-size: 11px; color: var(--error); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+
+button {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: var(--brand-dark);
+}
+
+button:hover { background: var(--button); }
+
+button.primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+button.primary:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.tag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ecf7ef;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+
+.question {
+  font-size: 19px;
+  margin: 12px 0 6px;
+}
+
+.options { display: grid; gap: 8px; margin-top: 8px; }
+
+.opt {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--button);
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 8px;
+  cursor: pointer;
+  align-items: center;
+  font-size: 14px;
+}
+
+.opt:hover { background: var(--button-hover); }
+
+.opt .k {
+  width: 26px; height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: grid; place-items: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--brand-dark);
+}
+
+.opt.selected { outline: 2px solid var(--brand); }
+
+.progress {
+  width: 100%; height: 9px;
+  border-radius: 6px;
+  background: var(--border);
+  margin: 6px 0;
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--brand), var(--accent-2));
+  border-radius: 6px;
+  transition: width .3s;
+}
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--brand);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  opacity: 0;
+  transition: transform .3s, opacity .3s;
+  z-index: 999;
+}
+
+.toast.show { 
+  transform: translateX(-50%) translateY(0); 
+  opacity: 1; 
+}
+
+footer {
+  text-align: center;
+  padding: 18px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+table th { text-align: left; }
+
