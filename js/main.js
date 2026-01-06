@@ -20,6 +20,127 @@ import { exportThisResult, exportAll } from './export.js';
 import { loadAdminTable, validateAdminCredentials } from './admin.js';
 import { embeddedBank } from './questions.js';
 
+console.log("=== NAT Quiz: All modules imported successfully ===");
+
+// Expose functions globally for inline onclick handlers (fallback)
+window.natStartQuestion = () => {
+  startQuestion();
+};
+window.natGoToUser = () => {
+  goScreen(document.getElementById("screenUser"));
+};
+window.natSubmit = () => {
+  if (state.locked) return;
+  lockAndAdvance(false);
+};
+window.natRetake = () => {
+  restartQuiz();
+};
+window.natExport = () => {
+  exportThisResult(state);
+};
+window.natGoToAdmin = () => {
+  goScreen(document.getElementById("screenAdmin"));
+};
+window.natGoToQuiz = () => {
+  goScreen(document.getElementById("screenQuiz"));
+};
+window.natAdminLogin = () => {
+  const id = elements.adminId.value.trim();
+  const pw = elements.adminPw.value.trim();
+  if (validateAdminCredentials(id, pw)) {
+    state.adminLogged = true;
+    elements.adminStatus.textContent = "Login successful.";
+    elements.adminLoginBox.classList.add("hidden");
+    elements.adminDashboard.classList.remove("hidden");
+    loadAdminTable(elements.adminTableBody, elements.detailBox);
+    updateHeaderButtons('admin');
+  } else {
+    elements.adminStatus.textContent = "Invalid credentials.";
+  }
+};
+window.natAdminLogout = () => {
+  elements.adminLoginBox.classList.remove("hidden");
+  elements.adminDashboard.classList.add("hidden");
+  elements.adminId.value = "";
+  elements.adminPw.value = "";
+  elements.adminStatus.textContent = "Logged out.";
+};
+window.natExportAll = () => {
+  exportAll();
+};
+window.natExportAttempt = () => {
+  if (window.currentSelectedAttempt) {
+    exportThisResult(window.currentSelectedAttempt);
+  }
+};
+window.natStartFromUser = () => {
+  if (!validateUser()) return;
+  const user = {
+    name: elements.uName.value.trim(),
+    email: elements.uEmail.value.trim(),
+    empId: elements.uEmpId.value.trim(),
+    dept: elements.uDept.value.trim()
+  };
+  state.user = user;
+  try {
+    localStorage.setItem("natUser", JSON.stringify(user));
+  } catch(e) {}
+  renderChips(user);
+  updateHeaderButtons('candidate');
+  showToast("Details saved. Starting quiz…");
+  setTimeout(() => {
+    restartQuiz();
+  }, 400);
+};
+
+window.natLogout = () => {
+  // Reset user state
+  state.user = null;
+  state.adminLogged = false;
+  
+  // Clear user chips
+  elements.userChips.innerHTML = "";
+  
+  // Reset admin dashboard if visible
+  elements.adminLoginBox.classList.remove("hidden");
+  elements.adminDashboard.classList.add("hidden");
+  elements.adminId.value = "";
+  elements.adminPw.value = "";
+  elements.adminStatus.textContent = "";
+  
+  // Update header buttons
+  updateHeaderButtons('none');
+  
+  // Go to user screen
+  goScreen(elements.screenUser);
+  showToast("Logged out successfully");
+};
+
+// Update header buttons based on login state
+function updateHeaderButtons(mode) {
+  const candidateBtn = document.getElementById("candidateBtn");
+  const adminBtn = document.getElementById("adminBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  
+  if (mode === 'candidate') {
+    candidateBtn.classList.add("hidden");
+    adminBtn.classList.add("hidden");
+    logoutBtn.classList.remove("hidden");
+  } else if (mode === 'admin') {
+    candidateBtn.classList.add("hidden");
+    adminBtn.classList.add("hidden");
+    logoutBtn.classList.remove("hidden");
+  } else {
+    candidateBtn.classList.remove("hidden");
+    adminBtn.classList.remove("hidden");
+    logoutBtn.classList.add("hidden");
+  }
+}
+
+// Expose for use in other functions
+window.updateHeaderButtons = updateHeaderButtons;
+
 // DOM Elements
 const elements = {
   // Screens
@@ -148,19 +269,22 @@ elements.prefillBtn.addEventListener("click", () => {
 });
 
 // Quiz controls
+console.log("Attaching quiz event listeners...", elements.startBtn, elements.backToDetailsBtn);
+
 elements.startBtn.addEventListener("click", () => {
+  console.log("Start button clicked!");
   startQuestion();
 });
 
 elements.submitBtn.addEventListener("click", () => {
+  console.log("Submit button clicked!");
   if (state.locked) return;
   lockAndAdvance(false);
 });
 
 elements.backToDetailsBtn.addEventListener("click", () => {
-  if (state.asked === 0 && state.logs.length === 0) {
-    goScreen(elements.screenUser);
-  }
+  console.log("Back to Details clicked!", { asked: state.asked, logs: state.logs.length });
+  goScreen(elements.screenUser);
 });
 
 // Summary controls
@@ -205,6 +329,8 @@ elements.exportAllBtn.addEventListener("click", exportAll);
 
 // Initialization
 (function init() {
+  console.log("NAT Quiz initializing...");
+  
   // Load saved user
   try {
     const u = JSON.parse(localStorage.getItem("natUser") || "null");
@@ -216,12 +342,21 @@ elements.exportAllBtn.addEventListener("click", exportAll);
       state.user = u;
       renderChips(u);
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error("Error loading saved user:", e);
+  }
 
   // Initialize question bank
+  console.log("Initializing question bank with", embeddedBank.length, "questions");
   initializeBank(embeddedBank);
   resetPools();
+  console.log("Pools initialized:", { 
+    easy: state.pools.easy.length, 
+    medium: state.pools.medium.length, 
+    hard: state.pools.hard.length 
+  });
   updateTop();
   setButtonsMode("start");
   goScreen(elements.screenUser);
+  console.log("NAT Quiz ready!");
 })();

@@ -40,24 +40,37 @@ export function goScreen(section) {
 }
 
 /**
- * Render user info chips
+ * Render user info in header
  * @param {Object} user - User object
  */
 export function renderChips(user) {
   elements.userChips.innerHTML = "";
-  const parts = [
-    user.name || "—",
-    user.email || "—",
-    user.empId || "—",
-    user.dept || "—"
-  ];
-  const labels = ["Name", "Email", "Emp ID", "Dept/RO"];
-  parts.forEach((v, idx) => {
-    const span = document.createElement("span");
-    span.className = "chip";
-    span.textContent = labels[idx] + ": " + v;
-    elements.userChips.appendChild(span);
-  });
+  
+  if (!user.name && !user.email) {
+    return;
+  }
+  
+  // Show user name
+  if (user.name) {
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "user-name";
+    nameSpan.textContent = user.name;
+    elements.userChips.appendChild(nameSpan);
+  }
+  
+  // Show email if available
+  if (user.email) {
+    if (user.name) {
+      const sep = document.createElement("span");
+      sep.className = "separator";
+      sep.textContent = "·";
+      elements.userChips.appendChild(sep);
+    }
+    const emailSpan = document.createElement("span");
+    emailSpan.className = "user-detail";
+    emailSpan.textContent = user.email;
+    elements.userChips.appendChild(emailSpan);
+  }
 }
 
 /**
@@ -147,10 +160,10 @@ export function renderQuestion() {
 export function countdown() {
   clearInterval(state.timer);
   state.timeLeft = 30;
-  elements.timerEl.textContent = "⏱ " + state.timeLeft + "s";
+  elements.timerEl.textContent = state.timeLeft + "s";
   state.timer = setInterval(() => {
     state.timeLeft--;
-    elements.timerEl.textContent = "⏱ " + state.timeLeft + "s";
+    elements.timerEl.textContent = state.timeLeft + "s";
     if (state.timeLeft <= 0) {
       clearInterval(state.timer);
       lockAndAdvance(true);
@@ -162,6 +175,14 @@ export function countdown() {
  * Start a new question
  */
 export function startQuestion() {
+  // Ensure pools are initialized
+  if (state.bank.length === 0) {
+    initializeBank(embeddedBank);
+  }
+  if (state.pools.easy.length === 0 && state.pools.medium.length === 0 && state.pools.hard.length === 0) {
+    resetPools();
+  }
+  
   state.locked = false;
   state.selection = null;
   document.querySelectorAll(".opt").forEach(o => o.classList.remove("selected"));
@@ -269,7 +290,7 @@ export function restartQuiz() {
   elements.optionsEl.innerHTML = "";
   elements.diffTag.textContent = "Difficulty: —";
   elements.skillTag.textContent = "Skill: —";
-  elements.timerEl.textContent = "⏱ 30s";
+  elements.timerEl.textContent = "30s";
   updateTop();
   setButtonsMode("start");
   goScreen(elements.screenQuiz);

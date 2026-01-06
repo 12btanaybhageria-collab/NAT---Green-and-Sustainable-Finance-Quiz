@@ -9,17 +9,20 @@
 <body>
   <div class="wrap">
     <header>
-      <div class="brand">
+      <div class="header-left">
         <div class="logo"><img src="public/nabard-logo.png" alt="NABARD" width="40" height="60" /></div>
-        <div>
+        <div class="brand-text">
           <h1>NAT Quiz</h1>
           <p class="sub">Green & Sustainable Finance Assessment</p>
         </div>
       </div>
-      <div class="top-actions">
-        <div class="user-chips" id="userChips"></div>
-        <button class="btn" id="candidateBtn">📝 Candidate</button>
-        <button class="btn" id="adminBtn">🔒 Admin</button>
+      <div class="header-right">
+        <div class="logged-user" id="userChips"></div>
+        <nav class="header-actions" id="headerActions">
+          <button class="header-btn" id="candidateBtn" onclick="if(window.natGoToUser) window.natGoToUser();">Candidate Login</button>
+          <button class="header-btn header-btn--outline" id="adminBtn" onclick="if(window.natGoToAdmin) window.natGoToAdmin();">Admin Login</button>
+          <button class="header-btn header-btn--outline hidden" id="logoutBtn" onclick="if(window.natLogout) window.natLogout();">Logout</button>
+        </nav>
       </div>
     </header>
 
@@ -52,9 +55,7 @@
                 <div class="err" id="eDept"></div>
               </div>
               <div class="actions">
-                <button class="primary" id="startFromUser">Start Quiz</button>
-                <button id="prefillBtn" type="button">Prefill from URL</button>
-              </div>
+                <button class="primary" id="startFromUser" onclick="if(window.natStartFromUser) window.natStartFromUser();">Start Quiz</button>              </div>
               <div class="muted" id="saveStatus"></div>
             </div>
           </div>
@@ -71,15 +72,15 @@
             <span class="tag" id="diffTag">Difficulty: —</span>
             <span class="tag" id="skillTag">Skill: —</span>
           </div>
-          <div class="timer" id="timer">⏱ 30s</div>
+          <div class="timer" id="timer">30s</div>
         </div>
 
         <h2 class="question" id="qText">Press "Start Test" to begin.</h2>
         <div class="options" id="options"></div>
         <div class="actions">
-          <button id="startBtn">Start Test</button>
-          <button id="submitBtn" class="primary hidden" disabled>Submit</button>
-          <button id="backToDetailsBtn">Back to Details</button>
+          <button id="startBtn" onclick="if(window.natStartQuestion) window.natStartQuestion(); else console.log('Module not loaded yet');">Start Test</button>
+          <button id="submitBtn" class="primary hidden" disabled onclick="if(window.natSubmit) window.natSubmit();">Submit</button>
+          <button id="backToDetailsBtn" onclick="if(window.natGoToUser) window.natGoToUser(); else console.log('Module not loaded yet');">Back to Details</button>
         </div>
 
         <div class="hr"></div>
@@ -94,76 +95,92 @@
 
       <!-- Summary screen -->
       <section class="card hidden" id="screenSummary">
-        <h2>Summary Report</h2>
+        <div class="summary-title-row">
+          <h2 class="title">Quiz Complete</h2>
+          <p class="subtitle">Review your performance and areas for improvement</p>
+        </div>
         <div id="summaryContent"></div>
-        <div class="actions">
-          <button id="retakeBtn">Retake with New Set</button>
-          <button id="exportBtn">Export This Result</button>
-          <button id="summaryToDetailsBtn">Back to Details</button>
+        <div class="actions summary-actions">
+          <button class="primary" id="retakeBtn" onclick="if(window.natRetake) window.natRetake();">Retake Quiz</button>
+          <button id="exportBtn" onclick="if(window.natExport) window.natExport();">Export Results</button>
+          <button id="summaryToDetailsBtn" onclick="if(window.natGoToUser) window.natGoToUser();">Back to Home</button>
         </div>
       </section>
 
       <!-- Admin screen -->
       <section class="card hidden" id="screenAdmin">
-        <div id="adminLoginBox">
-          <h2 class="title">Admin Login</h2>
-          <p class="subtitle">Enter admin credentials to view attempt logs.</p>
-          <div class="form" style="max-width:420px;">
-            <div class="field">
-              <label>Admin ID</label>
-              <input id="adminId" type="text" placeholder="Admin ID"/>
+        <div id="adminLoginBox" class="admin-login">
+          <div class="admin-login-content">
+            <div class="admin-login-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
             </div>
-            <div class="field">
-              <label>Password</label>
-              <input id="adminPw" type="password" placeholder="Password"/>
+            <h2 class="title">Admin Access</h2>
+            <p class="subtitle">Enter your credentials to access the dashboard</p>
+            <div class="form admin-form">
+              <div class="field">
+                <label>Admin ID</label>
+                <input id="adminId" type="text" placeholder="Enter admin ID"/>
+              </div>
+              <div class="field">
+                <label>Password</label>
+                <input id="adminPw" type="password" placeholder="Enter password"/>
+              </div>
+              <div class="actions">
+                <button class="primary" id="adminLoginBtn" onclick="if(window.natAdminLogin) window.natAdminLogin();">Sign In</button>
+                <button id="adminBackBtn" onclick="if(window.natGoToUser) window.natGoToUser();">Cancel</button>
+              </div>
+              <div class="admin-status" id="adminStatus"></div>
             </div>
-            <div class="actions">
-              <button class="primary" id="adminLoginBtn">Login</button>
-              <button id="adminBackBtn">Back</button>
-            </div>
-            <div class="muted" id="adminStatus"></div>
           </div>
         </div>
 
         <div id="adminDashboard" class="hidden">
-          <div class="row" style="justify-content:space-between;">
-            <h2 style="margin:0;">Admin Dashboard</h2>
-            <div class="row">
-              <button id="exportAllBtn">Export All Results</button>
-              <button id="adminLogoutBtn">Logout</button>
-              <button id="adminBackBtn2">Back</button>
+          <div class="admin-header">
+            <div class="admin-header-left">
+              <h2 class="admin-title">Dashboard</h2>
+              <p class="admin-subtitle">View and manage quiz attempts</p>
+            </div>
+            <div class="admin-header-actions">
+              <button class="primary" id="exportAllBtn" onclick="if(window.natExportAll) window.natExportAll();">Export All</button>
             </div>
           </div>
-          <div class="hr"></div>
-          <div class="muted" style="margin-bottom:6px;">Click a row to see details.</div>
-          <div style="max-height:360px;overflow:auto;border-radius:12px;border:1px solid var(--border);">
-            <table id="adminTable" style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead>
-                <tr style="background:#f4f8f5;">
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Name</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Email</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Emp ID</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Dept</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Attempts</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Last Score</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Questions</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">Finished</th>
-                  <th style="padding:6px;border-bottom:1px solid var(--border);">By Skill</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+
+          <div class="admin-section">
+            <div class="admin-section-header">
+              <h3 class="admin-section-title">All Attempts</h3>
+              <span class="admin-hint">Click a row to see details</span>
+            </div>
+            <div class="admin-table-wrap">
+              <table id="adminTable" class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Emp ID</th>
+                    <th>Dept</th>
+                    <th>Attempts</th>
+                    <th>Last Score</th>
+                    <th>Questions</th>
+                    <th>Finished</th>
+                    <th>By Skill</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
-          <div class="hr"></div>
-          <div>
-            <h3 style="margin:0 0 6px;">Selected Attempt Details</h3>
-            <div id="detailBox" class="muted">Click a row to view last attempt details.</div>
+
+          <div class="admin-section">
+            <h3 class="admin-section-title">Attempt Details</h3>
+            <div id="detailBox" class="admin-detail-box">
+              <div class="admin-detail-placeholder">Select a row above to view attempt details</div>
+            </div>
           </div>
         </div>
       </section>
     </main>
-
-    <footer>This is a standalone HTML quiz. To use in Glide, host this file over HTTPS and embed via Web Embed.</footer>
   </div>
 
   <div class="toast" id="toast">Saved. Starting quiz…</div>
@@ -171,3 +188,17 @@
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+

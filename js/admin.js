@@ -29,42 +29,56 @@ export function computeUserStats(attempts) {
  */
 export function generateAttemptDetailHTML(a) {
   if (!a) {
-    return "No attempt selected.";
+    return '<div class="admin-detail-placeholder">Select a row above to view attempt details</div>';
   }
   
-  let html = "";
-  html += '<div><strong>' + (a.user && a.user.name || '-') + '</strong> · ' +
-          (a.user && a.user.email || '-') + ' · Emp ' +
-          (a.user && a.user.empId || '-') + ' · ' +
-          (a.user && a.user.dept || '-') + '</div>';
-  html += '<div>Finished: ' + new Date(a.ts).toLocaleString() +
-          ' · Score (weighted): <strong>' + (Math.round(a.score * 10) / 10) + '</strong></div>';
-  html += '<div style="margin:6px 0 8px;"><em>By Skill:</em> ' + renderBySkillLine(a.bySkill) + '</div>';
-  html += '<div class="hr"></div>';
-  html += '<div style="max-height:260px;overflow:auto;border-radius:12px;border:1px solid var(--border);">';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
-    '<thead>' +
-      '<tr style="background:#f4f8f5;">' +
-        '<th style="padding:4px;border-bottom:1px solid var(--border);text-align:left;">#</th>' +
-        '<th style="padding:4px;border-bottom:1px solid var(--border);text-align:left;">QID</th>' +
-        '<th style="padding:4px;border-bottom:1px solid var(--border);text-align:left;">Difficulty</th>' +
-        '<th style="padding:4px;border-bottom:1px solid var(--border);text-align:left;">Skill</th>' +
-        '<th style="padding:4px;border-bottom:1px solid var(--border);text-align:left;">Chosen</th>' +
-        '<th style="padding:4px;border-bottom:1px solid var(--border);text-align:left;">Correct?</th>' +
-        '<th style="padding:4px;border-bottom:1px solid var(--border);text-align:right;">Time(s)</th>' +
-      '</tr>' +
-    '</thead>' +
-    '<tbody>';
+  let html = '';
+  
+  // User info header
+  html += '<div class="detail-header">' +
+    '<div class="detail-user">' +
+      '<div class="detail-name">' + (a.user && a.user.name || '-') + '</div>' +
+      '<div class="detail-meta">' + (a.user && a.user.email || '-') + ' · ' + (a.user && a.user.empId || '-') + ' · ' + (a.user && a.user.dept || '-') + '</div>' +
+    '</div>' +
+    '<div class="detail-score">' +
+      '<span class="detail-score-value">' + (Math.round(a.score * 10) / 10) + '</span>' +
+      '<span class="detail-score-label">Score</span>' +
+    '</div>' +
+  '</div>';
+  
+  // Timestamp and export button
+  html += '<div class="detail-row">' +
+    '<div class="detail-timestamp">Completed: ' + new Date(a.ts).toLocaleString() + '</div>' +
+    '<button class="detail-export-btn" onclick="if(window.natExportAttempt) window.natExportAttempt();">Export</button>' +
+  '</div>';
+  
+  // Skills breakdown
+  html += '<div class="detail-skills"><span class="detail-skills-label">By Skill:</span> ' + renderBySkillLine(a.bySkill) + '</div>';
+  
+  // Questions table
+  html += '<div class="detail-table-wrap">' +
+    '<table class="summary-table">' +
+      '<thead><tr>' +
+        '<th>#</th>' +
+        '<th>QID</th>' +
+        '<th>Difficulty</th>' +
+        '<th>Skill</th>' +
+        '<th>Answer</th>' +
+        '<th>Result</th>' +
+        '<th>Time</th>' +
+      '</tr></thead>' +
+      '<tbody>';
     
   a.logs.forEach((l, idx) => {
+    const isCorrect = l.correctBool;
     html += '<tr>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + (idx+1) + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + l.id + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + l.difficulty + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + l.skill + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + l.chosen + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + (l.correctBool ? '✔' : '✘') + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);text-align:right;">' + l.timeTaken + '</td>' +
+      '<td>' + (idx+1) + '</td>' +
+      '<td>' + l.id + '</td>' +
+      '<td><span class="diff-tag diff-tag-' + l.difficulty + '">' + l.difficulty + '</span></td>' +
+      '<td>' + l.skill + '</td>' +
+      '<td class="answer-cell">' + l.chosen + '</td>' +
+      '<td><span class="result-badge ' + (isCorrect ? 'result-correct' : 'result-wrong') + '">' + (isCorrect ? 'Correct' : 'Wrong') + '</span></td>' +
+      '<td class="text-right">' + l.timeTaken + 's</td>' +
     '</tr>';
   });
   
@@ -87,27 +101,33 @@ export function loadAdminTable(tableBody, detailBox) {
   
   if (byUser.size === 0) {
     const tr = document.createElement("tr");
-    tr.innerHTML = '<td colspan="9" style="padding:6px;text-align:center;" class="muted">No attempts stored yet.</td>';
+    tr.innerHTML = '<td colspan="9" class="empty-state">No attempts recorded yet</td>';
     tableBody.appendChild(tr);
     return;
   }
 
+  let selectedRow = null;
+  
   byUser.forEach(obj => {
     const last = obj.attempts[obj.attempts.length - 1];
     const tr = document.createElement("tr");
-    tr.style.cursor = "pointer";
     tr.innerHTML =
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + (obj.user && obj.user.name || '-') + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + (obj.user && obj.user.email || '-') + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + (obj.user && obj.user.empId || '-') + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + (obj.user && obj.user.dept || '-') + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);"><span class="chip" style="background:#fff;">' + obj.attempts.length + '</span></td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);"><strong>' + (Math.round(last.score * 10) / 10) + '</strong></td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + last.asked + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + new Date(last.ts).toLocaleString() + '</td>' +
-      '<td style="padding:4px;border-bottom:1px solid var(--border);">' + renderBySkillLine(last.bySkill) + '</td>';
+      '<td>' + (obj.user && obj.user.name || '-') + '</td>' +
+      '<td>' + (obj.user && obj.user.email || '-') + '</td>' +
+      '<td>' + (obj.user && obj.user.empId || '-') + '</td>' +
+      '<td>' + (obj.user && obj.user.dept || '-') + '</td>' +
+      '<td><span class="attempt-count">' + obj.attempts.length + '</span></td>' +
+      '<td><strong class="score-highlight">' + (Math.round(last.score * 10) / 10) + '</strong></td>' +
+      '<td>' + last.asked + '</td>' +
+      '<td class="date-cell">' + new Date(last.ts).toLocaleDateString() + '</td>' +
+      '<td class="skills-cell">' + renderBySkillLine(last.bySkill) + '</td>';
     
     tr.addEventListener("click", () => {
+      if (selectedRow) selectedRow.classList.remove("selected");
+      tr.classList.add("selected");
+      selectedRow = tr;
+      // Store the selected attempt globally for export
+      window.currentSelectedAttempt = last;
       detailBox.innerHTML = generateAttemptDetailHTML(last);
     });
     
