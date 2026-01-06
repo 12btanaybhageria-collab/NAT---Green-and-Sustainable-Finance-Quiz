@@ -883,6 +883,27 @@ function computeBySkill(logs) {
   return out;
 }
 
+function getRecommendedLevel(accuracy) {
+  if (accuracy < 25) return { level: "Foundational", color: "#dc3545", icon: "🔴" };
+  if (accuracy < 50) return { level: "Intermediate", color: "#fd7e14", icon: "🟠" };
+  if (accuracy < 75) return { level: "Advanced", color: "#0d6efd", icon: "🔵" };
+  return { level: "Leadership", color: "#198754", icon: "🟢" };
+}
+
+function findWeakestSkill(bySkill) {
+  let weakest = null;
+  let lowestAcc = 101;
+  Object.keys(bySkill).forEach(skill => {
+    const r = bySkill[skill];
+    const acc = r.total ? (r.correct / r.total) * 100 : 0;
+    if (acc < lowestAcc) {
+      lowestAcc = acc;
+      weakest = { skill, accuracy: acc, correct: r.correct, total: r.total };
+    }
+  });
+  return weakest;
+}
+
 function renderSummary() {
   const weightedScore = Math.round(state.score * 10) / 10;
   const bySkill = computeBySkill(state.logs);
@@ -891,6 +912,10 @@ function renderSummary() {
   state.logs.forEach(l => {
     diffCounts[l.difficulty] = (diffCounts[l.difficulty] || 0) + 1;
   });
+
+  // Find weakest skill and recommendation
+  const weakest = findWeakestSkill(bySkill);
+  const recommendation = weakest ? getRecommendedLevel(weakest.accuracy) : null;
 
   let html = "";
   html += '<div class="grid2">' +
@@ -904,6 +929,26 @@ function renderSummary() {
       '<div>Easy: ' + (diffCounts.easy||0) + ' · Medium: ' + (diffCounts.medium||0) + ' · Hard: ' + (diffCounts.hard||0) + '</div>' +
     '</div>' +
   '</div>';
+
+  // Recommendation card for weakest skill
+  if (weakest && recommendation) {
+    html += '<div class="card" style="margin-top:10px;border-left:4px solid ' + recommendation.color + ';background:linear-gradient(90deg, rgba(255,255,255,0.95), #fff);">' +
+      '<div style="display:flex;align-items:center;gap:12px;">' +
+        '<div style="font-size:32px;">' + recommendation.icon + '</div>' +
+        '<div style="flex:1;">' +
+          '<div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">📊 Skill Improvement Recommendation</div>' +
+          '<div style="font-size:16px;font-weight:700;margin:4px 0;color:#333;">Weakest Skill: <span style="color:' + recommendation.color + ';">' + weakest.skill + '</span></div>' +
+          '<div style="font-size:13px;color:#555;">' +
+            'Accuracy: <strong>' + Math.round(weakest.accuracy) + '%</strong> (' + weakest.correct + '/' + weakest.total + ' correct)' +
+          '</div>' +
+          '<div style="margin-top:8px;padding:8px 12px;background:' + recommendation.color + '15;border-radius:6px;display:inline-block;">' +
+            '<span style="font-size:12px;color:#666;">Recommended Proficiency Level: </span>' +
+            '<strong style="color:' + recommendation.color + ';font-size:14px;">' + recommendation.level + '</strong>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
 
   html += '<div class="card" style="margin-top:10px;">' +
     '<div class="muted">By Skill (unweighted accuracy)</div>' +
@@ -1058,10 +1103,19 @@ function downloadCSV(filename, rows) {
 
 function exportThisResult() {
   if (!state.user || state.logs.length === 0) return;
-  const header = ["timestamp","name","email","empId","dept","weightedScore","asked","qid","difficulty","skill","chosen","correct?","timeTaken"];
+  const header = ["timestamp","name","email","empId","dept","weightedScore","asked","weakestSkill","weakestSkillAccuracy","recommendedLevel","qid","difficulty","skill","chosen","correct?","timeTaken"];
   const rows = [header];
   const ts = new Date().toLocaleString();
-  state.logs.forEach(l => {
+  
+  // Calculate weakest skill for this attempt
+  const bySkill = computeBySkill(state.logs);
+  const weakest = findWeakestSkill(bySkill);
+  const recommendation = weakest ? getRecommendedLevel(weakest.accuracy) : null;
+  const weakestSkillName = weakest ? weakest.skill : "";
+  const weakestSkillAcc = weakest ? Math.round(weakest.accuracy) + "%" : "";
+  const recommendedLevel = recommendation ? recommendation.level : "";
+  
+  state.logs.forEach((l, idx) => {
     rows.push([
       ts,
       state.user.name || "",
@@ -1070,6 +1124,9 @@ function exportThisResult() {
       state.user.dept || "",
       Math.round(state.score*10)/10,
       state.asked,
+      idx === 0 ? weakestSkillName : "",  // Only on first row
+      idx === 0 ? weakestSkillAcc : "",   // Only on first row
+      idx === 0 ? recommendedLevel : "",  // Only on first row
       l.id,
       l.difficulty,
       l.skill,
@@ -1085,10 +1142,18 @@ function exportAll() {
   const raw = localStorage.getItem("natAttempts") || "[]";
   let attempts = [];
   try { attempts = JSON.parse(raw); } catch(e) { attempts = []; }
-  const header = ["timestamp","name","email","empId","dept","weightedScore","asked","qid","difficulty","skill","chosen","correct?","timeTaken"];
+  const header = ["timestamp","name","email","empId","dept","weightedScore","asked","weakestSkill","weakestSkillAccuracy","recommendedLevel","qid","difficulty","skill","chosen","correct?","timeTaken"];
   const rows = [header];
   attempts.forEach(a => {
-    a.logs.forEach(l => {
+    // Calculate weakest skill for each attempt
+    const bySkill = computeBySkill(a.logs || []);
+    const weakest = findWeakestSkill(bySkill);
+    const recommendation = weakest ? getRecommendedLevel(weakest.accuracy) : null;
+    const weakestSkillName = weakest ? weakest.skill : "";
+    const weakestSkillAcc = weakest ? Math.round(weakest.accuracy) + "%" : "";
+    const recommendedLevel = recommendation ? recommendation.level : "";
+    
+    (a.logs || []).forEach((l, idx) => {
       rows.push([
         new Date(a.ts).toLocaleString(),
         a.user && a.user.name || "",
@@ -1097,6 +1162,9 @@ function exportAll() {
         a.user && a.user.dept || "",
         Math.round(a.score*10)/10,
         a.asked,
+        idx === 0 ? weakestSkillName : "",  // Only on first row of each attempt
+        idx === 0 ? weakestSkillAcc : "",   // Only on first row of each attempt
+        idx === 0 ? recommendedLevel : "",  // Only on first row of each attempt
         l.id,
         l.difficulty,
         l.skill,
